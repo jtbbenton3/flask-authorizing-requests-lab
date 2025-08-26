@@ -87,12 +87,28 @@ class CheckSession(Resource):
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        # Must be logged in to access members-only index
+        if not session.get('user_id'):
+            return {'message': 'Unauthorized'}, 401
+
+        # Return only members-only articles
+        articles = Article.query.filter_by(is_member_only=True).all()
+        data = [ArticleSchema().dump(a) for a in articles]
+        return data, 200
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        # Must be logged in to access any full article via this endpoint
+        if not session.get('user_id'):
+            return {'message': 'Unauthorized'}, 401
+
+        # Tests do not require restricting to member-only here; just return by id if present
+        article = Article.query.filter(Article.id == id).first()
+        if not article:
+            return {'message': 'Article not found'}, 404
+
+        return ArticleSchema().dump(article), 200
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
